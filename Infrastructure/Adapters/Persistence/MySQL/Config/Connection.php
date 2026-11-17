@@ -10,6 +10,8 @@ final class Connection
     private string $username;
     private string $password;
     private string $charset;
+    private bool $useSsl;
+    private string $sslCa;
 
     public function __construct(
         string $host,
@@ -17,7 +19,9 @@ final class Connection
         string $database,
         string $username,
         string $password,
-        string $charset = 'utf8mb4'
+        string $charset = 'utf8mb4',
+        bool $useSsl = false,
+        string $sslCa = ''
     ) {
         $this->host = $host;
         $this->port = $port;
@@ -25,6 +29,8 @@ final class Connection
         $this->username = $username;
         $this->password = $password;
         $this->charset = $charset;
+        $this->useSsl = $useSsl;
+        $this->sslCa = $sslCa;
     }
 
     public function createPdo(): PDO
@@ -37,16 +43,23 @@ final class Connection
             $this->charset
         );
 
-        $pdo = new PDO(
-            $dsn,
-            $this->username,
-            $this->password,
-            array(
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            )
+        $options = array(
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
         );
+
+        // Bases de datos en la nube (Aiven, TiDB Cloud, etc.) exigen TLS.
+        if ($this->useSsl) {
+            if ($this->sslCa !== '') {
+                $options[PDO::MYSQL_ATTR_SSL_CA] = $this->sslCa;
+                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = true;
+            } else {
+                $options[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] = false;
+            }
+        }
+
+        $pdo = new PDO($dsn, $this->username, $this->password, $options);
 
         return $pdo;
     }
