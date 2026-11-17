@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "CRUDL Edificios (PHP Hexagonal)",
+    "description": "Colección para probar el CRUDL de Edificio. Ejecutar en orden (Collection Runner). Requiere sesión: ejecutar primero el Login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "baseUrl", "value": "http://localhost:8080"},
+    {"key": "adminEmail", "value": "admin@crud.com"},
+    {"key": "adminPassword", "value": "admin123"},
+    {"key": "edificioId", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "0. Login (obtiene cookie de sesión)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Login redirige (302) o responde 200', function () { pm.expect([200, 302]).to.include(pm.response.code); });"]}}],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {"mode": "urlencoded", "urlencoded": [{"key": "email", "value": "{{adminEmail}}"}, {"key": "password", "value": "{{adminPassword}}"}]},
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=auth.authenticate", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "auth.authenticate"}]},
+        "description": "Postman conserva la cookie PHPSESSID automáticamente. Ejecutar primero."
+      }
+    },
+    {
+      "name": "1. Crear edificio (C)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 201', function () { pm.response.to.have.status(201); });", "var json = pm.response.json(); pm.collectionVariables.set('edificioId', json.data.id);", "pm.test('Responde el edificio creado', function () { pm.expect(pm.response.json().data.nombre).to.eql('Torre Mirador'); });"]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Torre Mirador\",\n  \"metrosCuadrados\": 12500.5,\n  \"altura\": 90,\n  \"numPisos\": 30,\n  \"numApartamentos\": 120,\n  \"numOficinas\": 10,\n  \"nombreParqueadero\": \"Parqueadero Norte\",\n  \"numPiscinas\": 1,\n  \"pais\": \"Colombia\",\n  \"departamento\": \"Bolívar\",\n  \"ciudad\": \"Cartagena\",\n  \"tieneAscensor\": true,\n  \"valorAdministracion\": 450000,\n  \"tieneZonaSocial\": true\n}"},
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.store", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.store"}]},
+        "description": "Crea un edificio. Guarda el id en la variable edificioId."
+      }
+    },
+    {
+      "name": "2. Listar edificios (L)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"]}}],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/json"}],
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.index", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.index"}]},
+        "description": "Lista todos los edificios."
+      }
+    },
+    {
+      "name": "3. Consultar edificio por id (R)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"]}}],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/json"}],
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.show&id={{edificioId}}", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.show"}, {"key": "id", "value": "{{edificioId}}"}]},
+        "description": "Detalle de un edificio."
+      }
+    },
+    {
+      "name": "4. Actualizar edificio (U)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 200', function () { pm.response.to.have.status(200); });"]}}],
+      "request": {
+        "method": "PUT",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Torre Mirador II\",\n  \"metrosCuadrados\": 12500.5,\n  \"altura\": 95,\n  \"numPisos\": 31,\n  \"numApartamentos\": 120,\n  \"numOficinas\": 10,\n  \"nombreParqueadero\": \"Parqueadero Norte\",\n  \"numPiscinas\": 1,\n  \"pais\": \"Colombia\",\n  \"departamento\": \"Bolívar\",\n  \"ciudad\": \"Cartagena\",\n  \"tieneAscensor\": true,\n  \"valorAdministracion\": 450000,\n  \"tieneZonaSocial\": true\n}"},
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.update&id={{edificioId}}", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.update"}, {"key": "id", "value": "{{edificioId}}"}]},
+        "description": "Actualiza todos los atributos del edificio."
+      }
+    },
+    {
+      "name": "5. Crear duplicado (409)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 409', function () { pm.response.to.have.status(409); });"]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Torre Mirador II\",\n  \"metrosCuadrados\": 12500.5,\n  \"altura\": 90,\n  \"numPisos\": 30,\n  \"numApartamentos\": 120,\n  \"numOficinas\": 10,\n  \"nombreParqueadero\": \"Parqueadero Norte\",\n  \"numPiscinas\": 1,\n  \"pais\": \"Colombia\",\n  \"departamento\": \"Bolívar\",\n  \"ciudad\": \"Cartagena\",\n  \"tieneAscensor\": true,\n  \"valorAdministracion\": 450000,\n  \"tieneZonaSocial\": true\n}"},
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.store", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.store"}]},
+        "description": "Mismo nombre y ciudad que el edificio actualizado: debe responder 409."
+      }
+    },
+    {
+      "name": "6. Crear con datos inválidos (422)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 422', function () { pm.response.to.have.status(422); });"]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Accept", "value": "application/json"}, {"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"\",\n  \"metrosCuadrados\": -5,\n  \"altura\": 10,\n  \"numPisos\": 30,\n  \"numApartamentos\": 0,\n  \"numOficinas\": 0,\n  \"nombreParqueadero\": \"P\",\n  \"numPiscinas\": -1,\n  \"pais\": \"Colombia\",\n  \"departamento\": \"Bolívar\",\n  \"ciudad\": \"Cartagena\",\n  \"tieneAscensor\": false,\n  \"valorAdministracion\": 0,\n  \"tieneZonaSocial\": false\n}"},
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.store", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.store"}]},
+        "description": "Violaciones de validación y reglas de dominio."
+      }
+    },
+    {
+      "name": "7. Consultar id inexistente (404)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 404', function () { pm.response.to.have.status(404); });"]}}],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/json"}],
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.show&id=no-existe", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.show"}, {"key": "id", "value": "no-existe"}]},
+        "description": "Debe responder 404."
+      }
+    },
+    {
+      "name": "8. Eliminar edificio (D)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 204', function () { pm.response.to.have.status(204); });"]}}],
+      "request": {
+        "method": "DELETE",
+        "header": [{"key": "Accept", "value": "application/json"}],
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.delete&id={{edificioId}}", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.delete"}, {"key": "id", "value": "{{edificioId}}"}]},
+        "description": "Elimina el edificio creado."
+      }
+    },
+    {
+      "name": "9. Eliminar de nuevo (404)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": ["pm.test('Status 404', function () { pm.response.to.have.status(404); });"]}}],
+      "request": {
+        "method": "DELETE",
+        "header": [{"key": "Accept", "value": "application/json"}],
+        "url": {"raw": "{{baseUrl}}/public/index.php?route=api.edificios.delete&id={{edificioId}}", "host": ["{{baseUrl}}"], "path": ["public", "index.php"], "query": [{"key": "route", "value": "api.edificios.delete"}, {"key": "id", "value": "{{edificioId}}"}]},
+        "description": "El edificio ya no existe."
+      }
+    }
+  ]
+}
