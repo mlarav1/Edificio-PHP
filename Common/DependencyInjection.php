@@ -20,7 +20,7 @@ final class DependencyInjection
         return new Connection(
             host: EnvLoader::get('DB_HOST', '127.0.0.1'),
             port: EnvLoader::getInt('DB_PORT', 3306),
-            database: EnvLoader::get('DB_DATABASE', 'crud_usuarios'),
+            database: EnvLoader::get('DB_DATABASE', 'crud_edificios'),
             username: EnvLoader::get('DB_USERNAME', 'root'),
             password: EnvLoader::get('DB_PASSWORD', ''),
             charset: EnvLoader::get('DB_CHARSET', 'utf8mb4')
@@ -145,6 +145,82 @@ final class DependencyInjection
             self::getGetAllUsersUseCase(),
             self::getDeleteUserUseCase(),
             self::getUserWebMapper()
+        );
+    }
+
+    public static function getEdificioPersistenceMapper(): EdificioPersistenceMapper
+    {
+        ClassLoader::loadClass('EdificioPersistenceMapper');
+
+        return new EdificioPersistenceMapper();
+    }
+
+    public static function getEdificioRepository(): EdificioRepositoryMySQL
+    {
+        ClassLoader::loadClass('EdificioRepositoryMySQL');
+
+        return new EdificioRepositoryMySQL(
+            self::getPdo(),
+            self::getEdificioPersistenceMapper()
+        );
+    }
+
+    public static function getCreateEdificioUseCase(): CreateEdificioUseCase
+    {
+        ClassLoader::loadClass('CreateEdificioService');
+        $repository = self::getEdificioRepository();
+
+        return new CreateEdificioService($repository, $repository);
+    }
+
+    public static function getUpdateEdificioUseCase(): UpdateEdificioUseCase
+    {
+        ClassLoader::loadClass('UpdateEdificioService');
+        $repository = self::getEdificioRepository();
+
+        return new UpdateEdificioService($repository, $repository, $repository);
+    }
+
+    public static function getGetEdificioByIdUseCase(): GetEdificioByIdUseCase
+    {
+        ClassLoader::loadClass('GetEdificioByIdService');
+
+        return new GetEdificioByIdService(self::getEdificioRepository());
+    }
+
+    public static function getGetAllEdificiosUseCase(): GetAllEdificiosUseCase
+    {
+        ClassLoader::loadClass('GetAllEdificiosService');
+
+        return new GetAllEdificiosService(self::getEdificioRepository());
+    }
+
+    public static function getDeleteEdificioUseCase(): DeleteEdificioUseCase
+    {
+        ClassLoader::loadClass('DeleteEdificioService');
+        $repository = self::getEdificioRepository();
+
+        return new DeleteEdificioService($repository, $repository);
+    }
+
+    public static function getEdificioWebMapper(): EdificioWebMapper
+    {
+        ClassLoader::loadClass('EdificioWebMapper');
+
+        return new EdificioWebMapper();
+    }
+
+    public static function getEdificioController(): EdificioController
+    {
+        ClassLoader::loadClass('EdificioController');
+
+        return new EdificioController(
+            self::getCreateEdificioUseCase(),
+            self::getUpdateEdificioUseCase(),
+            self::getGetEdificioByIdUseCase(),
+            self::getGetAllEdificiosUseCase(),
+            self::getDeleteEdificioUseCase(),
+            self::getEdificioWebMapper()
         );
     }
 

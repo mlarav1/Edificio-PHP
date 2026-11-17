@@ -1,7 +1,7 @@
 <?php require __DIR__ . '/layouts/header.php'; ?>
 <?php require __DIR__ . '/layouts/menu.php'; ?>
 
-<h1>Menú principal del CRUDL de usuarios</h1>
+<h1>Menú principal: CRUDL de usuarios y edificios</h1>
 
 <p>Desde aquí podrás acceder a las operaciones del sistema.</p>
 
@@ -23,6 +23,15 @@
     <li><strong>U:</strong> Actualizar usuario</li>
     <li><strong>D:</strong> Eliminar usuario</li>
     <li><strong>L:</strong> Listar usuarios</li>
+</ul>
+
+<h2>Edificios</h2>
+<ul>
+    <li><strong>C:</strong> <a href="?route=edificios.create">Registrar edificio</a></li>
+    <li><strong>R:</strong> Consultar el detalle de un edificio</li>
+    <li><strong>U:</strong> Actualizar edificio</li>
+    <li><strong>D:</strong> Eliminar edificio</li>
+    <li><strong>L:</strong> <a href="?route=edificios.index">Listar edificios</a></li>
 </ul>
 
 <?php require __DIR__ . '/layouts/footer.php'; ?>
