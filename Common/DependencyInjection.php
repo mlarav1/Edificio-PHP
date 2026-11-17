@@ -224,6 +224,12 @@ final class DependencyInjection
         );
     }
 
+    public static function getEdificioApiController(): EdificioApiController
+    {
+        ClassLoader::loadClass('EdificioApiController');
+
+        return new EdificioApiController(self::getEdificioController());
+    }
     public static function getLoginUseCase(): LoginUseCase
     {
         ClassLoader::loadClass('LoginService');
