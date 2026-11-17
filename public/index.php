@@ -182,6 +182,86 @@ try {
             View::redirect('users.index');
             break;
 
+        case 'edificio.create':
+            View::render('edificios/create', buildCreateEdificioViewData());
+            break;
+
+        case 'edificio.store':
+            $controller = DependencyInjection::getEdificioController();
+            $form = getEdificioFormData();
+            $form['id'] = generateUuid4();
+            $errors = validateEdificioForm($form);
+
+            if (!empty($errors)) {
+                Flash::setOld($form);
+                Flash::setErrors($errors);
+                Flash::setMessage('Corrige los errores del formulario.');
+                View::redirect('edificios.create');
+            }
+
+            $controller->store(buildCreateEdificioRequest($form));
+
+            Flash::setSuccess('Edificio registrado correctamente.');
+            View::redirect('edificios.index');
+            break;
+
+        case 'edificio.index':
+            $controller = DependencyInjection::getEdificioController();
+            $edificios = $controller->index();
+            View::render('edificios/list', array(
+                'pageTitle' => 'Lista de edificios',
+                'edificios' => $edificios,
+                'message' => Flash::message(),
+                'success' => Flash::success(),
+            ));
+            break;
+
+        case 'edificio.show':
+            $controller = DependencyInjection::getEdificioController();
+            $id = isset($_GET['id']) ? trim((string) $_GET['id']) : '';
+            $edificio = $controller->show($id);
+            View::render('edificios/show', array(
+                'pageTitle' => 'Detalle de edificio',
+                'edificio' => $edificio,
+                'message' => Flash::message(),
+            ));
+            break;
+
+        case 'edificio.edit':
+            $controller = DependencyInjection::getEdificioController();
+            $id = isset($_GET['id']) ? trim((string) $_GET['id']) : '';
+            $edificio = $controller->show($id);
+            View::render('edificios/edit', buildEditEdificioViewData($edificio));
+            break;
+
+        case 'edificio.update':
+            $controller = DependencyInjection::getEdificioController();
+            $form = getEdificioFormData();
+            $form['id'] = isset($_POST['id']) ? trim((string) $_POST['id']) : '';
+            $errors = validateEdificioForm($form);
+
+            if (!empty($errors)) {
+                Flash::setOld($form);
+                Flash::setErrors($errors);
+                Flash::setMessage('Corrige los errores del formulario.');
+                header('Location: ?route=edificios.edit&id=' . urlencode($form['id']));
+                exit;
+            }
+
+            $controller->update(buildUpdateEdificioRequest($form));
+
+            Flash::setSuccess('Edificio actualizado correctamente.');
+            View::redirect('edificios.index');
+            break;
+
+        case 'edificio.delete':
+            $controller = DependencyInjection::getEdificioController();
+            $id = isset($_POST['id']) ? trim((string) $_POST['id']) : '';
+            $controller->delete($id);
+            Flash::setSuccess('Edificio eliminado correctamente.');
+            View::redirect('edificios.index');
+            break;
+
         case 'login':
             if (isLoggedIn()) {
                 View::redirect('home');
@@ -295,6 +375,23 @@ try {
             Flash::setOld(getUpdateUserFormData());
             header('Location: ?route=users.edit&id=' . urlencode($updateId));
             exit;
+
+        case 'edificios.store':
+            Flash::setOld(getEdificioFormData());
+            View::redirect('edificios.create');
+            break;
+
+        case 'edificios.update':
+            $updateEdificioId = trim((string) ($_POST['id'] ?? ''));
+            Flash::setOld(getEdificioFormData());
+            header('Location: ?route=edificios.edit&id=' . urlencode($updateEdificioId));
+            exit;
+
+        case 'edificios.show':
+        case 'edificios.edit':
+        case 'edificios.delete':
+            View::redirect('edificios.index');
+            break;
 
         case 'auth.authenticate':
             Flash::setOld(array('email' => trim(strtolower((string) ($_POST['email'] ?? '')))));
@@ -505,4 +602,172 @@ function validateUpdateUserForm(array $form): array
     }
 
     return $errors;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Edificio: helpers de la capa de presentacion
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * @return array<string, mixed>
+ */
+function getEdificioFormData(): array
+{
+    $text = static fn(string $key): string => isset($_POST[$key]) ? trim((string) $_POST[$key]) : '';
+
+    return array(
+        'nombre' => $text('nombre'),
+        'metrosCuadrados' => $text('metrosCuadrados'),
+        'altura' => $text('altura'),
+        'numPisos' => $text('numPisos'),
+        'numApartamentos' => $text('numApartamentos'),
+        'numOficinas' => $text('numOficinas'),
+        'nombreParqueadero' => $text('nombreParqueadero'),
+        'numPiscinas' => $text('numPiscinas'),
+        'pais' => $text('pais'),
+        'departamento' => $text('departamento'),
+        'ciudad' => $text('ciudad'),
+        'tieneAscensor' => isset($_POST['tieneAscensor']),
+        'valorAdministracion' => $text('valorAdministracion'),
+        'tieneZonaSocial' => isset($_POST['tieneZonaSocial']),
+    );
+}
+
+/**
+ * Validacion de formato del formulario (campos obligatorios y numericos).
+ * Las reglas de negocio las aplican los Value Objects del dominio.
+ *
+ * @param array<string, mixed> $form
+ * @return array<string, string>
+ */
+function validateEdificioForm(array $form): array
+{
+    $errors = array();
+
+    $requiredTexts = array(
+        'nombre' => 'El nombre es obligatorio.',
+        'nombreParqueadero' => 'El nombre del parqueadero es obligatorio.',
+        'pais' => 'El país es obligatorio.',
+        'departamento' => 'El departamento es obligatorio.',
+        'ciudad' => 'La ciudad es obligatoria.',
+    );
+    foreach ($requiredTexts as $field => $message) {
+        if ($form[$field] === '') {
+            $errors[$field] = $message;
+        }
+    }
+
+    $decimals = array(
+        'metrosCuadrados' => array('Los metros cuadrados', false),
+        'altura' => array('La altura', false),
+        'valorAdministracion' => array('El valor de administración', true),
+    );
+    foreach ($decimals as $field => [$label, $allowZero]) {
+        $value = str_replace(',', '.', (string) $form[$field]);
+        if ($form[$field] === '') {
+            $errors[$field] = $label . ' es obligatorio.';
+        } elseif (!is_numeric($value)) {
+            $errors[$field] = $label . ' debe ser un número.';
+        } elseif ((float) $value < 0 || (!$allowZero && (float) $value === 0.0)) {
+            $errors[$field] = $label . ($allowZero ? ' no puede ser negativo.' : ' debe ser mayor que cero.');
+        }
+    }
+
+    $integers = array(
+        'numPisos' => array('El número de pisos', 1),
+        'numApartamentos' => array('El número de apartamentos', 0),
+        'numOficinas' => array('El número de oficinas', 0),
+        'numPiscinas' => array('El número de piscinas', 0),
+    );
+    foreach ($integers as $field => [$label, $min]) {
+        if ($form[$field] === '') {
+            $errors[$field] = $label . ' es obligatorio.';
+        } elseif (filter_var($form[$field], FILTER_VALIDATE_INT) === false) {
+            $errors[$field] = $label . ' debe ser un número entero.';
+        } elseif ((int) $form[$field] < $min) {
+            $errors[$field] = $label . ' debe ser mayor o igual a ' . $min . '.';
+        }
+    }
+
+    return $errors;
+}
+
+/**
+ * @param array<string, mixed> $form
+ */
+function buildCreateEdificioRequest(array $form): CreateEdificioWebRequest
+{
+    return new CreateEdificioWebRequest(
+        (string) $form['id'],
+        (string) $form['nombre'],
+        (string) $form['metrosCuadrados'],
+        (string) $form['altura'],
+        (string) $form['numPisos'],
+        (string) $form['numApartamentos'],
+        (string) $form['numOficinas'],
+        (string) $form['nombreParqueadero'],
+        (string) $form['numPiscinas'],
+        (string) $form['pais'],
+        (string) $form['departamento'],
+        (string) $form['ciudad'],
+        (bool) $form['tieneAscensor'],
+        (string) $form['valorAdministracion'],
+        (bool) $form['tieneZonaSocial']
+    );
+}
+
+/**
+ * @param array<string, mixed> $form
+ */
+function buildUpdateEdificioRequest(array $form): UpdateEdificioWebRequest
+{
+    return new UpdateEdificioWebRequest(
+        (string) $form['id'],
+        (string) $form['nombre'],
+        (string) $form['metrosCuadrados'],
+        (string) $form['altura'],
+        (string) $form['numPisos'],
+        (string) $form['numApartamentos'],
+        (string) $form['numOficinas'],
+        (string) $form['nombreParqueadero'],
+        (string) $form['numPiscinas'],
+        (string) $form['pais'],
+        (string) $form['departamento'],
+        (string) $form['ciudad'],
+        (bool) $form['tieneAscensor'],
+        (string) $form['valorAdministracion'],
+        (bool) $form['tieneZonaSocial']
+    );
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function buildCreateEdificioViewData(): array
+{
+    $old = Flash::old();
+
+    return array(
+        'pageTitle' => 'Registrar edificio',
+        'values' => $old,
+        'message' => Flash::message(),
+        'success' => Flash::success(),
+        'errors' => Flash::errors(),
+    );
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function buildEditEdificioViewData(EdificioResponse $edificio): array
+{
+    $old = Flash::old();
+
+    return array(
+        'pageTitle' => 'Editar edificio',
+        'edificio' => $edificio,
+        'values' => !empty($old) ? $old : $edificio->toArray(),
+        'message' => Flash::message(),
+        'errors' => Flash::errors(),
+    );
 }
