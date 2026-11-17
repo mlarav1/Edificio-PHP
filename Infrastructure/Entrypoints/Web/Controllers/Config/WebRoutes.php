@@ -70,7 +70,26 @@ final class WebRoutes
                 'method' => 'POST',
                 'action' => 'edificio.delete',
             ),
-            'auth.login' => array(
+            'api.edificios.index' => array(
+                'method' => 'GET',
+                'action' => 'api.edificio.index',
+            ),
+            'api.edificios.show' => array(
+                'method' => 'GET',
+                'action' => 'api.edificio.show',
+            ),
+            'api.edificios.store' => array(
+                'method' => 'POST',
+                'action' => 'api.edificio.store',
+            ),
+            'api.edificios.update' => array(
+                'method' => 'PUT',
+                'action' => 'api.edificio.update',
+            ),
+            'api.edificios.delete' => array(
+                'method' => 'DELETE',
+                'action' => 'api.edificio.delete',
+            ),            'auth.login' => array(
                 'method' => 'GET',
                 'action' => 'login',
             ),

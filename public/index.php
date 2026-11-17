@@ -77,6 +77,11 @@ if ($httpMethod !== $definition['method']) {
     exit;
 }
 
+// API REST (JSON): maneja su propia autenticacion y errores en formato JSON.
+if (str_starts_with($definition['action'], 'api.')) {
+    handleEdificioApiRequest($definition['action']);
+    exit;
+}
 // Protect all user management routes behind authentication.
 $publicActions = array('home', 'login', 'authenticate', 'logout', 'forgot', 'forgot.send', 'create', 'store');
 if (!in_array($definition['action'], $publicActions, true) && !isLoggedIn()) {
@@ -642,56 +647,10 @@ function getEdificioFormData(): array
  */
 function validateEdificioForm(array $form): array
 {
-    $errors = array();
+    ClassLoader::loadClass('EdificioFormValidator');
 
-    $requiredTexts = array(
-        'nombre' => 'El nombre es obligatorio.',
-        'nombreParqueadero' => 'El nombre del parqueadero es obligatorio.',
-        'pais' => 'El país es obligatorio.',
-        'departamento' => 'El departamento es obligatorio.',
-        'ciudad' => 'La ciudad es obligatoria.',
-    );
-    foreach ($requiredTexts as $field => $message) {
-        if ($form[$field] === '') {
-            $errors[$field] = $message;
-        }
-    }
-
-    $decimals = array(
-        'metrosCuadrados' => array('Los metros cuadrados', false),
-        'altura' => array('La altura', false),
-        'valorAdministracion' => array('El valor de administración', true),
-    );
-    foreach ($decimals as $field => [$label, $allowZero]) {
-        $value = str_replace(',', '.', (string) $form[$field]);
-        if ($form[$field] === '') {
-            $errors[$field] = $label . ' es obligatorio.';
-        } elseif (!is_numeric($value)) {
-            $errors[$field] = $label . ' debe ser un número.';
-        } elseif ((float) $value < 0 || (!$allowZero && (float) $value === 0.0)) {
-            $errors[$field] = $label . ($allowZero ? ' no puede ser negativo.' : ' debe ser mayor que cero.');
-        }
-    }
-
-    $integers = array(
-        'numPisos' => array('El número de pisos', 1),
-        'numApartamentos' => array('El número de apartamentos', 0),
-        'numOficinas' => array('El número de oficinas', 0),
-        'numPiscinas' => array('El número de piscinas', 0),
-    );
-    foreach ($integers as $field => [$label, $min]) {
-        if ($form[$field] === '') {
-            $errors[$field] = $label . ' es obligatorio.';
-        } elseif (filter_var($form[$field], FILTER_VALIDATE_INT) === false) {
-            $errors[$field] = $label . ' debe ser un número entero.';
-        } elseif ((int) $form[$field] < $min) {
-            $errors[$field] = $label . ' debe ser mayor o igual a ' . $min . '.';
-        }
-    }
-
-    return $errors;
+    return EdificioFormValidator::validate($form);
 }
-
 /**
  * @param array<string, mixed> $form
  */
@@ -770,4 +729,93 @@ function buildEditEdificioViewData(EdificioResponse $edificio): array
         'message' => Flash::message(),
         'errors' => Flash::errors(),
     );
+}
+
+// ──────────────────────────────────────────────────────────────
+// Edificio: API REST (JSON)
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * @param array<mixed>|null $body
+ */
+function jsonResponse(int $status, ?array $body): void
+{
+    http_response_code($status);
+    header('Content-Type: application/json; charset=UTF-8');
+
+    if ($body !== null) {
+        echo json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+}
+
+/**
+ * @return array<string, mixed>
+ */
+function readJsonBody(): array
+{
+    $raw = (string) file_get_contents('php://input');
+
+    if (trim($raw) === '') {
+        return array();
+    }
+
+    $decoded = json_decode($raw, true);
+
+    if (!is_array($decoded)) {
+        throw new InvalidArgumentException('El cuerpo de la petición debe ser un JSON válido.');
+    }
+
+    return $decoded;
+}
+
+function handleEdificioApiRequest(string $action): void
+{
+    if (!isLoggedIn()) {
+        jsonResponse(401, array('error' => 'No autenticado. Inicia sesión en ?route=auth.authenticate.'));
+        return;
+    }
+
+    try {
+        $api = DependencyInjection::getEdificioApiController();
+        $id = isset($_GET['id']) ? trim((string) $_GET['id']) : '';
+
+        switch ($action) {
+            case 'api.edificio.index':
+                jsonResponse(200, array('data' => $api->index()));
+                return;
+
+            case 'api.edificio.show':
+                jsonResponse(200, array('data' => $api->show($id)));
+                return;
+
+            case 'api.edificio.store':
+                jsonResponse(201, array('data' => $api->store(generateUuid4(), readJsonBody())));
+                return;
+
+            case 'api.edificio.update':
+                jsonResponse(200, array('data' => $api->update($id, readJsonBody())));
+                return;
+
+            case 'api.edificio.delete':
+                $api->delete($id);
+                jsonResponse(204, null);
+                return;
+
+            default:
+                jsonResponse(404, array('error' => 'Acción de API no soportada.'));
+                return;
+        }
+    } catch (EdificioNotFoundException $exception) {
+        jsonResponse(404, array('error' => $exception->getMessage()));
+    } catch (EdificioAlreadyExistsException $exception) {
+        jsonResponse(409, array('error' => $exception->getMessage()));
+    } catch (InvalidArgumentException $exception) {
+        $details = json_decode($exception->getMessage(), true);
+        jsonResponse(422, is_array($details)
+            ? array('error' => 'Datos inválidos.', 'errors' => $details)
+            : array('error' => $exception->getMessage()));
+    } catch (Throwable $exception) {
+        error_log($exception->getMessage());
+        jsonResponse(500, array('error' => 'Error interno del servidor.'));
+    }
 }
