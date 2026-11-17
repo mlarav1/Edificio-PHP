@@ -1,0 +1,82 @@
+openapi: 3.0.3
+info:
+  title: CRUDL Edificios
+  version: 1.0.0
+  description: >
+    API REST (JSON) del CRUDL de Edificio. Requiere sesión: primero
+    POST /public/index.php?route=auth.authenticate (form: email, password).
+servers:
+  - url: http://localhost:8080
+paths:
+  /public/index.php?route=api.edificios.index:
+    get:
+      summary: Listar edificios
+      responses:
+        "200": { description: Lista de edificios }
+        "401": { description: No autenticado }
+  /public/index.php?route=api.edificios.store:
+    post:
+      summary: Crear edificio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EdificioInput" }
+      responses:
+        "201": { description: Creado }
+        "409": { description: Ya existe un edificio con ese nombre en la ciudad }
+        "422": { description: Datos inválidos }
+  /public/index.php?route=api.edificios.show&id={id}:
+    get:
+      summary: Consultar edificio
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: OK }
+        "404": { description: No encontrado }
+  /public/index.php?route=api.edificios.update&id={id}:
+    put:
+      summary: Actualizar edificio
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EdificioInput" }
+      responses:
+        "200": { description: Actualizado }
+        "404": { description: No encontrado }
+        "409": { description: Duplicado }
+        "422": { description: Datos inválidos }
+  /public/index.php?route=api.edificios.delete&id={id}:
+    delete:
+      summary: Eliminar edificio
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "204": { description: Eliminado }
+        "404": { description: No encontrado }
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string }
+  schemas:
+    EdificioInput:
+      type: object
+      required: [nombre, metrosCuadrados, altura, numPisos, numApartamentos, numOficinas, nombreParqueadero, numPiscinas, pais, departamento, ciudad, tieneAscensor, valorAdministracion, tieneZonaSocial]
+      properties:
+        nombre: { type: string, minLength: 3, maxLength: 120 }
+        metrosCuadrados: { type: number, exclusiveMinimum: 0 }
+        altura: { type: number, exclusiveMinimum: 0, description: "metros; mínimo 2 m por piso" }
+        numPisos: { type: integer, minimum: 1 }
+        numApartamentos: { type: integer, minimum: 0 }
+        numOficinas: { type: integer, minimum: 0, description: "apartamentos + oficinas debe ser > 0" }
+        nombreParqueadero: { type: string, minLength: 3 }
+        numPiscinas: { type: integer, minimum: 0 }
+        pais: { type: string }
+        departamento: { type: string }
+        ciudad: { type: string }
+        tieneAscensor: { type: boolean }
+        valorAdministracion: { type: number, minimum: 0 }
+        tieneZonaSocial: { type: boolean }
