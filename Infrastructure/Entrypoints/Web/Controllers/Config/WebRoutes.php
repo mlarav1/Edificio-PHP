@@ -42,6 +42,34 @@ final class WebRoutes
                 'method' => 'POST',
                 'action' => 'delete',
             ),
+            'edificios.create' => array(
+                'method' => 'GET',
+                'action' => 'edificio.create',
+            ),
+            'edificios.store' => array(
+                'method' => 'POST',
+                'action' => 'edificio.store',
+            ),
+            'edificios.index' => array(
+                'method' => 'GET',
+                'action' => 'edificio.index',
+            ),
+            'edificios.show' => array(
+                'method' => 'GET',
+                'action' => 'edificio.show',
+            ),
+            'edificios.edit' => array(
+                'method' => 'GET',
+                'action' => 'edificio.edit',
+            ),
+            'edificios.update' => array(
+                'method' => 'POST',
+                'action' => 'edificio.update',
+            ),
+            'edificios.delete' => array(
+                'method' => 'POST',
+                'action' => 'edificio.delete',
+            ),
             'auth.login' => array(
                 'method' => 'GET',
                 'action' => 'login',
