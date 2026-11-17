@@ -1,0 +1,45 @@
+# Ejecucion local: docker compose up --build
+# App:  http://localhost:8080/public/index.php   (admin@crud.com / admin123)
+services:
+  db:
+    image: mysql:8.0
+    container_name: edificios-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_local
+      MYSQL_DATABASE: crud_edificios
+      MYSQL_USER: estudiante
+      MYSQL_PASSWORD: developer
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      # Migracion automatica: tablas + usuario admin base
+      - ./database/schema_tables.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-proot_local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    container_name: edificios-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "80"
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: crud_edificios
+      DB_USERNAME: estudiante
+      DB_PASSWORD: developer
+      DB_CHARSET: utf8mb4
+      DB_SSL: "false"
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:

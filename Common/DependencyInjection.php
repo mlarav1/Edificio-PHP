@@ -23,7 +23,9 @@ final class DependencyInjection
             database: EnvLoader::get('DB_DATABASE', 'crud_edificios'),
             username: EnvLoader::get('DB_USERNAME', 'root'),
             password: EnvLoader::get('DB_PASSWORD', ''),
-            charset: EnvLoader::get('DB_CHARSET', 'utf8mb4')
+            charset: EnvLoader::get('DB_CHARSET', 'utf8mb4'),
+            useSsl: filter_var(EnvLoader::get('DB_SSL', 'false'), FILTER_VALIDATE_BOOLEAN),
+            sslCa: EnvLoader::get('DB_SSL_CA', '')
         );
     }
 
@@ -224,6 +226,12 @@ final class DependencyInjection
         );
     }
 
+    public static function getEdificioApiController(): EdificioApiController
+    {
+        ClassLoader::loadClass('EdificioApiController');
+
+        return new EdificioApiController(self::getEdificioController());
+    }
     public static function getLoginUseCase(): LoginUseCase
     {
         ClassLoader::loadClass('LoginService');

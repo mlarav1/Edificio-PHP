@@ -136,6 +136,8 @@ final class ClassLoader
         'EdificioResponse' => 'Infrastructure/Entrypoints/Web/Controllers/Dto/EdificioResponse.php',
         'EdificioWebMapper' => 'Infrastructure/Entrypoints/Web/Controllers/Mapper/EdificioWebMapper.php',
         'EdificioController' => 'Infrastructure/Entrypoints/Web/Controllers/EdificioController.php',
+        'EdificioApiController' => 'Infrastructure/Entrypoints/Web/Controllers/EdificioApiController.php',
+        'EdificioFormValidator' => 'Infrastructure/Entrypoints/Web/Controllers/Validation/EdificioFormValidator.php',
     );
 
     public static function register(): void
