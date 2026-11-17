@@ -1,0 +1,28 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+# La base de datos MySQL vive en un proveedor externo (Render no ofrece MySQL
+# gestionado). Los secretos se configuran en el panel de Render (sync: false).
+services:
+  - type: web
+    name: edificios-php
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /public/index.php?route=auth.login
+    autoDeploy: true
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_DATABASE
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_CHARSET
+        value: utf8mb4
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_CA
+        value: /etc/ssl/certs/ca-certificates.crt
